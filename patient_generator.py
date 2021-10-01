@@ -46,7 +46,7 @@ def get_diagnosis(measurements: dict) -> int:
     The closer to reference values, the higher chance of being normal
     See diagnoses map for mapping from str -> int
     """
-    pulse_normal = is_normal(measurements['pulse'], ())
+    #pulse_normal = is_normal(measurements['pulse'], ())
     sap_normal = is_normal(measurements['sap'], (90, 120))
     spo2_normal = is_normal(measurements['spo2'], (94, 100))
     t_normal = is_normal(measurements['t'], (36, 37.5))
