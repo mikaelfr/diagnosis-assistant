@@ -51,6 +51,10 @@ def get_diagnosis_and_add_symptoms(measurements: dict) -> int:
     spo2_normal = is_normal(measurements['spo2'], (94, 100))
     t_normal = is_normal(measurements['t'], (36, 37.5))
 
+    # default to no
+    measurements['chest_pain'] = 0
+    measurements['motor_impairment'] = 0
+
     # TODO: within reference values but still diagnosis
     if not t_normal[0] and t_normal[1] > 0 and not sap_normal[0] and sap_normal[1] < 0 and not spo2_normal[0] and spo2_normal[1] < 0:
         return diagnoses_map['sepsis']
