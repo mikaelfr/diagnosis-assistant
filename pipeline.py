@@ -15,7 +15,8 @@ classifier = classify_data(train_df)
 
 # check accuracy
 samples, features = convert_for_classifier(test_df)
-predicted_features = classifier.predict(samples)
+predicted_features_prob = classifier.predict_proba(samples)
+predicted_features = np.argmax(predicted_features_prob, axis=1)
 
 correct = features == predicted_features
 unique, counts = np.unique(correct, return_counts=True)
@@ -25,4 +26,5 @@ print('Accuracy:', accuracy)
 
 # Print out some wrong predictions
 test_df['predicted'] = predicted_features
+test_df['predicted_conf'] = np.amax(predicted_features_prob, axis=1)
 print(test_df[~correct].head(10))
