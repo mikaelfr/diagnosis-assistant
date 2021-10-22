@@ -9,14 +9,20 @@ from classifier import classify_data, convert_for_classifier
 def main():
     selected_page = st.sidebar.selectbox(
         'Select page',
-        ('Model', 'Patients'),
+        ('Landing', 'Model', 'Patients'),
         index=0
     )
 
     if selected_page == 'Patients':
         patient_stats()
-    else:
+    elif selected_page == 'Model':
         model_stats()
+    else:
+        landing()
+
+def landing():
+    st.title('Landing page')
+    st.write('Select a page from the sidebar.')
 
 def model_stats():
     st.title('Model Stats')
