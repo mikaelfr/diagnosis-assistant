@@ -11,7 +11,7 @@ split_idx = math.floor(len(people.index) * 0.8)
 train_df = people.iloc[:split_idx]
 test_df = people.iloc[split_idx:]
 
-classifier = classify_data(train_df)
+classifier, _ = classify_data(train_df)
 
 # check accuracy
 samples, features = convert_for_classifier(test_df)

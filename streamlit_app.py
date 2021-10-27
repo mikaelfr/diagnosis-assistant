@@ -4,12 +4,12 @@ import altair as alt
 import pandas as pd
 import numpy as np
 from patient_generator import generate_people, diagnoses_map
-from classifier import classify_data, convert_for_classifier
+from classifier import classify_data, convert_for_classifier, classfier_col_order, fix_missing_values
 
 def main():
     selected_page = st.sidebar.selectbox(
         'Select page',
-        ('Landing', 'Model', 'Patients'),
+        ('Landing', 'Model', 'Patients', 'Example UI'),
         index=0
     )
 
@@ -17,6 +17,8 @@ def main():
         patient_stats()
     elif selected_page == 'Model':
         model_stats()
+    elif selected_page == 'Example UI':
+        example_user_ui()
     else:
         landing()
 
@@ -35,7 +37,7 @@ def model_stats():
         train_df = people.iloc[:split_idx]
         test_df = people.iloc[split_idx:]
 
-        classifier = classify_data(train_df)
+        classifier, _ = classify_data(train_df)
 
         # check accuracy
         samples, features = convert_for_classifier(test_df)
@@ -114,5 +116,54 @@ def patient_stats():
         chart = alt.Chart(value_counts, title=col).mark_bar().encode(x='value', y='count')
         st.altair_chart(chart, use_container_width=True)
 
+
+def example_user_ui():
+    st.title('Example UI')
+
+    classifier = None
+    means = None
+    # caching the classfier
+    if 'precomputed_classifier' not in st.session_state:
+        with st.spinner('Generating the model...'):
+            people = generate_people(100000)
+            classifier, means = classify_data(people)
+            st.session_state['precomputed_classifier'] = classifier
+            st.session_state['means'] = means
+    else:
+        classifier = st.session_state['precomputed_classifier']
+        means = st.session_state['means']
+
+    with st.form('parameters_form'):
+        continous = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age']
+        categorical = ['motor_impairment', 'chest_pain']
+
+        measurements = {}
+
+        for val in continous:
+            # assuming 0 is null
+            num_val = st.number_input(val)
+            measurements[val] = num_val if num_val != 0 else None
+
+        measurements['sex'] = 0 if st.selectbox('sex', ('Male', 'Female')) == 'Male' else 1
+
+        for val in categorical:
+            measurements[val] = int(st.checkbox(val))
+
+        submitted = st.form_submit_button('Get probabilities')
+        if submitted:
+            # get probabilities
+            df = pd.DataFrame(data=[measurements])
+            # we need to use means from the training set here, kinda dangerous
+            # but should be fine medical measurements in this case
+            df = fix_missing_values(df, means)
+            df = df[list(filter(lambda x: x != 'diagnosis', classfier_col_order))]
+            probabilities = classifier.predict_proba(df.to_numpy())
+
+            # build graph
+            diagnoses_map_flipped = { v: k for k,v in diagnoses_map.items()}
+            diagnoses_df = pd.DataFrame(data={'diagnosis': range(len(probabilities[0])), 'probability': probabilities[0]})
+            diagnoses_df['diagnosis'] = diagnoses_df['diagnosis'].replace(to_replace=diagnoses_map_flipped)
+            diagnoses_chart = alt.Chart(diagnoses_df).mark_bar().encode(x='diagnosis', y='probability')
+            st.altair_chart(diagnoses_chart, use_container_width=True)
 
 main()

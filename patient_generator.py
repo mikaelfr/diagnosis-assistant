@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+from classifier import classfier_col_order
 
 def random_normal(mu: float, sigma: float, hard_min: float = None, hard_max: float = None) -> float:
     """ Returns a random float from a normal distribution, will reroll if outside [hard_min, hard_max] """
@@ -108,7 +109,9 @@ def generate_person():
 def generate_people(n: int = 10000) -> pd.DataFrame:
     """ Generate an n number of people and return their data in a dataframe """
     people_dict = [generate_person() for _ in range(n)]
-    return pd.DataFrame(data=people_dict)
+    df = pd.DataFrame(data=people_dict)
+    df = df[classfier_col_order]
+    return df
 
 if __name__ == '__main__':
     generated_people = generate_people()
