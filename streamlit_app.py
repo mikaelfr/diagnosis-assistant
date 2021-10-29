@@ -65,9 +65,21 @@ def model_stats():
         st.write(test_df[~correct].head(10))
 
 def patient_stats():
-    patient_df = generate_people2(100000)
+    patient_df = None
+    # caching the classfier
+    if 'patient_df' not in st.session_state:
+        with st.spinner('Generating people...'):
+            patient_df = generate_people2(100000)
+            st.session_state['patient_df'] = patient_df
+    else:
+        patient_df = st.session_state['patient_df']
+
     st.title('Simulated Patient Data')
     st.write('Example of generated patient data of 100000 people:')
+    should_reset = st.button('Regenerate patient data')
+    if should_reset:
+        patient_df = generate_people2(100000)
+        st.session_state['patient_df'] = patient_df
     st.write(patient_df.head())
 
     # Group by diagnoses
@@ -93,17 +105,28 @@ def patient_stats():
     st.altair_chart(nas_chart, use_container_width=True)
 
     # Value distributions
-    st.header('Value distributions')
+    st.header('Value distributions per diagnosis')
+    selected_diagnosis = st.selectbox(
+        'Select diagnosis',
+        ['all'] + list(diagnoses_map.keys()),
+        index=0
+    )
+
     continous = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age']
     categorical = ['sex', 'motor_impairment', 'chest_pain']
 
+    if selected_diagnosis == 'all':
+        dist_df = patient_df
+    else:
+        dist_df = patient_df[patient_df['diagnosis'] == diagnoses_map[selected_diagnosis]]
+
     for col in continous:
-        df_max = patient_df[col].max()
-        df_min = patient_df[col].min()
+        df_max = dist_df[col].max()
+        df_min = dist_df[col].min()
         num_bins = round(df_max - df_min)
         num_bins = num_bins * 10 if num_bins < 10 else num_bins
         num_bins = min(num_bins, 30)
-        binned = pd.cut(patient_df[col], num_bins)
+        binned = pd.cut(dist_df[col], num_bins)
         value_counts = binned.value_counts()
         value_counts = value_counts.to_frame().reset_index()
         value_counts = value_counts.rename(columns={'index': 'value', col: 'count'})
@@ -113,7 +136,7 @@ def patient_stats():
 
 
     for col in categorical:
-        value_counts = patient_df[col].value_counts()
+        value_counts = dist_df[col].value_counts()
         value_counts = value_counts.to_frame().reset_index()
         value_counts = value_counts.rename(columns={'index': 'value', col: 'count'})
         if col == 'sex':

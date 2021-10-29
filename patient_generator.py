@@ -127,6 +127,13 @@ def generate_people(n: int = 10000) -> pd.DataFrame:
 
 # alt way
 
+limits = {
+    'pulse': {'min': 60, 'max': 100, 'slack_percent': 0.2},
+    'sap': {'min': 90, 'max': 120, 'slack_percent': 0.2},
+    'spo2': {'min': 94, 'max': 100, 'slack_percent': 0.2},
+    't': {'min': 36, 'max': 37.5, 'slack_percent': 0.33},
+}
+
 # generate a healthy person (keep rerolling till within parameters above, allow some slack)
 def generate_person_healthy():
     """ Generate a healthy person and return their measurements in a dict """
@@ -149,13 +156,6 @@ def generate_person_healthy():
         'sap': {'args': (141, 18), 'kwargs': {}},
         'spo2': {'args': (97, 1.5), 'kwargs': {'hard_max': 100}},
         't': {'args': (36.8, 0.5), 'kwargs': {}}
-    }
-
-    limits = {
-        'pulse': {'min': 60, 'max': 100, 'slack_percent': 0.2},
-        'sap': {'min': 90, 'max': 120, 'slack_percent': 0.2},
-        'spo2': {'min': 94, 'max': 100, 'slack_percent': 0.2},
-        't': {'min': 36, 'max': 37.5, 'slack_percent': 0.33},
     }
 
     measurements = { 
@@ -202,7 +202,7 @@ def generate_person_diagnosis():
             continue
 
         # 5% chance to skip this symptom altogether
-        if random_bool(0.05):
+        if not random_bool(0.05):
             continue
 
         val = params[key]
@@ -215,7 +215,8 @@ def generate_person_diagnosis():
         else:
             # move the value to desired direction for diagnosis
             # add a uniform 20% spread to each direction from the initial value
-            person[key] += person[key] * val + person[key] * val * random.uniform(-0.2, 0.2)
+            baseline = limits[key]['max'] if val > 0 else limits[key]['min']
+            person[key] = baseline + person[key] * val + person[key] * val * random.uniform(-0.2, 0.2)
     
     # 0.5% chance to have symptoms but no diagnosis
     person['diagnosis'] = diagnosis * random_bool(0.005)
