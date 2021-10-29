@@ -9,7 +9,7 @@ from classifier import classify_data, convert_for_classifier, classfier_col_orde
 def main():
     selected_page = st.sidebar.selectbox(
         'Select page',
-        ('Landing', 'Model', 'Patients', 'Example UI'),
+        ('Landing', 'Example UI', 'Model', 'Patients'),
         index=0
     )
 
@@ -33,6 +33,7 @@ def model_stats():
         people = generate_people2(100000)
 
         # split into test and train datasets
+        people = people.sample(frac=1).reset_index(drop=True)
         split_idx = math.floor(len(people.index) * 0.8)
         train_df = people.iloc[:split_idx]
         test_df = people.iloc[split_idx:]
@@ -156,6 +157,7 @@ def example_user_ui():
     if 'precomputed_classifier' not in st.session_state:
         with st.spinner('Generating the model...'):
             people = generate_people2(100000)
+            people = people.sample(frac=1).reset_index(drop=True)
             classifier, means = classify_data(people)
             st.session_state['precomputed_classifier'] = classifier
             st.session_state['means'] = means
