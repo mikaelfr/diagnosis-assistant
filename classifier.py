@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
-from sklearn.pipeline import make_pipeline
-from sklearn.tree import DecisionTreeClassifier
-from tpot.builtins import StackingEstimator
-from tpot.export_utils import set_param_recursive
+from sklearn.ensemble import RandomForestClassifier
 
 classfier_col_order = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age', 'sex', 'chest_pain', 'motor_impairment', 'diagnosis']
 
