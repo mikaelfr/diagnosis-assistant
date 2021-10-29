@@ -1,6 +1,7 @@
+import math
 import random
 import pandas as pd
-from classifier import classfier_col_order
+from classifier import classfier_col_order, categorical
 
 def random_normal(mu: float, sigma: float, hard_min: float = None, hard_max: float = None) -> float:
     """ Returns a random float from a normal distribution, will reroll if outside [hard_min, hard_max] """
@@ -20,6 +21,14 @@ diagnoses_map = {
     'pulm_emb': 3,
     'dehydration': 4,
     'sepsis': 5
+}
+
+diagnoses_params = {
+    1: {'sap': 0.3, 'motor_impairment': 1},
+    2: {'sap': [-0.3, 0.3], 'chest_pain': 1},
+    3: {'spo2': -0.1, 'chest_pain': 1},
+    4: {'pulse': 0.5, 'sap': -0.3},
+    5: {'t': 0.1, 'pulse': 0.5, 'sap': -0.3, 'spo2': -0.1},
 }
 
 def is_normal(value: float, referenceRange: tuple) -> tuple:
@@ -113,6 +122,117 @@ def generate_people(n: int = 10000) -> pd.DataFrame:
     df = df[classfier_col_order]
     return df
 
+
+# TODO: if time, allow changing of all parameters in key places (patients, example ui, etc.)
+
+# alt way
+
+# generate a healthy person (keep rerolling till within parameters above, allow some slack)
+def generate_person_healthy():
+    """ Generate a healthy person and return their measurements in a dict """
+    pulse = random_normal(86, 13.5)
+    spo2 = random_normal(97, 1.5, hard_max=100)
+    sap = random_normal(141, 18)
+    t = random_normal(36.8, 0.5)
+    rr = random_normal(16, 2)
+    gluc = random_normal(7.2, 1.55)
+    age = random_normal(60.6, 21.4, hard_min=0, hard_max=100)
+    # random chest pain even if healthy
+    chest_pain = 1 - random_bool(0.02)
+    # drunk? migraine?
+    motor_impairment = 1 - random_bool(0.01)
+    # 0 = man, 1 = woman
+    sex = random_bool(0.483)
+
+    value_params = {
+        'pulse': {'args': (86, 13.5), 'kwargs': {}},
+        'sap': {'args': (141, 18), 'kwargs': {}},
+        'spo2': {'args': (97, 1.5), 'kwargs': {'hard_max': 100}},
+        't': {'args': (36.8, 0.5), 'kwargs': {}}
+    }
+
+    limits = {
+        'pulse': {'min': 60, 'max': 100, 'slack_percent': 0.2},
+        'sap': {'min': 90, 'max': 120, 'slack_percent': 0.2},
+        'spo2': {'min': 94, 'max': 100, 'slack_percent': 0.2},
+        't': {'min': 36, 'max': 37.5, 'slack_percent': 0.33},
+    }
+
+    measurements = { 
+        'pulse': pulse, 
+        'spo2': spo2, 
+        'sap': sap, 
+        't': t, 
+        'rr': rr, 
+        'gluc': gluc, 
+        'age': age, 
+        'sex': sex, 
+        'chest_pain': chest_pain, 
+        'motor_impairment': motor_impairment, 
+        'diagnosis': diagnoses_map['normal'] 
+    }
+
+    for key in limits.keys():
+        slack = (limits[key]['max'] - limits[key]['min']) * limits[key]['slack_percent']
+        # if not within limits, reroll
+        while measurements[key] - slack > limits[key]['max'] or measurements[key] + slack < limits[key]['min']:
+            measurements[key] = random_normal(*value_params[key]['args'], **value_params[key]['kwargs'])
+
+    # remove some values to simulate missing measurements
+    final_values = {}
+    for key in measurements.keys():
+        # 10% chance per value to be missing
+        remove = random_bool(0.9)
+        if not bool(remove):
+            final_values[key] = measurements[key]
+    
+    # diagnosis cannot be missing
+    final_values['diagnosis'] = measurements['diagnosis']
+
+    return final_values
+
+# then take some and move the values accordingly to spec (with variance and skip some cols)
+def generate_person_diagnosis():
+    person = generate_person_healthy()
+    diagnosis = random.randint(1, len(diagnoses_params))
+
+    params = diagnoses_params[diagnosis]
+    for key in params.keys():
+        if key not in person:
+            continue
+
+        # 5% chance to skip this symptom altogether
+        if random_bool(0.05):
+            continue
+
+        val = params[key]
+        if isinstance(val, list):
+            index = random.randrange(0, len(val))
+            val = val[index]
+
+        if key in categorical:
+            person[key] = val
+        else:
+            # move the value to desired direction for diagnosis
+            # add a uniform 20% spread to each direction from the initial value
+            person[key] += person[key] * val + person[key] * val * random.uniform(-0.2, 0.2)
+    
+    # 0.5% chance to have symptoms but no diagnosis
+    person['diagnosis'] = diagnosis * random_bool(0.005)
+    return person
+
+def generate_people2(n: int = 10000, p: float = 0.5) -> pd.DataFrame:
+    """ 
+    Generate an n number of people and return their data in a dataframe
+    p is the (approximate) percentage of people to have a diagnosis
+    """
+    diagnosis_n = math.floor(n * p)
+    healthy_n = n - diagnosis_n
+    people_dict = [generate_person_healthy() for _ in range(healthy_n)] + [generate_person_diagnosis() for _ in range(diagnosis_n)]
+    df = pd.DataFrame(data=people_dict)
+    df = df[classfier_col_order]
+    return df
+
 if __name__ == '__main__':
-    generated_people = generate_people()
+    generated_people = generate_people2()
     print(generated_people)

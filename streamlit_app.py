@@ -3,7 +3,7 @@ import streamlit as st
 import altair as alt
 import pandas as pd
 import numpy as np
-from patient_generator import generate_people, diagnoses_map
+from patient_generator import generate_people, generate_people2, diagnoses_map
 from classifier import classify_data, convert_for_classifier, classfier_col_order, fix_missing_values
 
 def main():
@@ -30,7 +30,7 @@ def model_stats():
     st.title('Model Stats')
 
     with st.spinner('Running the model...'):
-        people = generate_people(100000)
+        people = generate_people2(100000)
 
         # split into test and train datasets
         split_idx = math.floor(len(people.index) * 0.8)
@@ -65,7 +65,7 @@ def model_stats():
         st.write(test_df[~correct].head(10))
 
 def patient_stats():
-    patient_df = generate_people(100000)
+    patient_df = generate_people2(100000)
     st.title('Simulated Patient Data')
     st.write('Example of generated patient data of 100000 people:')
     st.write(patient_df.head())
@@ -81,6 +81,13 @@ def patient_stats():
     # Number of NAs
     st.header('Number of NAs')
     count_of_nas = patient_df.isnull().sum().T.reset_index()
+    count_of_nas = count_of_nas.rename(columns={'index': 'column', 0: 'count'})
+    nas_chart = alt.Chart(count_of_nas).mark_bar().encode(x='column', y='count')
+    st.altair_chart(nas_chart, use_container_width=True)
+
+    # Number of NAs for people with a diagnosis
+    st.header('Number of NAs for people with a diagnosis')
+    count_of_nas = patient_df[patient_df['diagnosis'] != 0].isnull().sum().T.reset_index()
     count_of_nas = count_of_nas.rename(columns={'index': 'column', 0: 'count'})
     nas_chart = alt.Chart(count_of_nas).mark_bar().encode(x='column', y='count')
     st.altair_chart(nas_chart, use_container_width=True)
@@ -125,7 +132,7 @@ def example_user_ui():
     # caching the classfier
     if 'precomputed_classifier' not in st.session_state:
         with st.spinner('Generating the model...'):
-            people = generate_people(100000)
+            people = generate_people2(100000)
             classifier, means = classify_data(people)
             st.session_state['precomputed_classifier'] = classifier
             st.session_state['means'] = means

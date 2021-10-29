@@ -1,10 +1,10 @@
 import math
 import pandas as pd
 import numpy as np
-from patient_generator import generate_people
+from patient_generator import generate_people, generate_people2
 from classifier import classify_data, convert_for_classifier
 
-people = generate_people(100000)
+people = generate_people2(100000)
 
 # split into test and train datasets
 split_idx = math.floor(len(people.index) * 0.8)

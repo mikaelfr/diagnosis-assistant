@@ -9,6 +9,7 @@ classfier_col_order = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age', 'sex', 
 continous = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age']
 categorical_assume_mean = ['sex']
 categorical_assume_no = ['motor_impairment', 'chest_pain']
+categorical = categorical_assume_mean + categorical_assume_no
 
 def fix_missing_values(df: pd.DataFrame, means: dict = None) -> pd.DataFrame:
     """
@@ -61,7 +62,6 @@ def classify_data(df: pd.DataFrame) -> tuple:
 
     X, y = convert_for_classifier(df)
 
-    samples = convert_for_classifier(df)
     classfier = RandomForestClassifier()
     classfier.fit(X, y)
 
