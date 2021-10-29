@@ -1,2 +1,7 @@
 __pycache__
 tpot_exported_pipeline*.py
+*.aux
+*.log
+*.pdf
+*.synctex.gz
+
