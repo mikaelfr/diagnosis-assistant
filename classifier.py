@@ -65,14 +65,8 @@ def classify_data(df: pd.DataFrame) -> tuple:
 
     X, y = convert_for_classifier(df)
 
-    pipeline = make_pipeline(
-        StackingEstimator(estimator=DecisionTreeClassifier(criterion="entropy", max_depth=7, min_samples_leaf=9, min_samples_split=16)),
-        ExtraTreesClassifier(bootstrap=False, criterion="entropy", max_features=0.9500000000000001, min_samples_leaf=9, min_samples_split=15, n_estimators=100)
-    )
-
-    #classfier = RandomForestClassifier() #ExtraTreesClassifier(bootstrap=False, criterion="entropy", max_features=0.9500000000000001, min_samples_leaf=9, min_samples_split=15, n_estimators=100)
-    #classfier.fit(X, y)
-    pipeline.fit(X, y)
+    classfier = RandomForestClassifier(bootstrap=True, criterion='gini', max_features=0.65, min_samples_leaf=20, min_samples_split=14, n_estimators=100)
+    classfier.fit(X, y)
 
     means = get_means_from_training_set(df)
-    return pipeline, means
+    return classfier, means
