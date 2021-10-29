@@ -7,6 +7,7 @@ from classifier import classify_data, convert_for_classifier
 people = generate_people2(100000)
 
 # split into test and train datasets
+people = people.sample(frac=1).reset_index(drop=True)
 split_idx = math.floor(len(people.index) * 0.8)
 train_df = people.iloc[:split_idx]
 test_df = people.iloc[split_idx:]

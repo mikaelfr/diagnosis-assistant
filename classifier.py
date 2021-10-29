@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
 
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.impute import SimpleImputer
+from sklearn.ensemble import ExtraTreesClassifier, RandomForestClassifier
+from sklearn.pipeline import make_pipeline
+from sklearn.tree import DecisionTreeClassifier
+from tpot.builtins import StackingEstimator
+from tpot.export_utils import set_param_recursive
 
 classfier_col_order = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age', 'sex', 'chest_pain', 'motor_impairment', 'diagnosis']
 
@@ -62,8 +65,14 @@ def classify_data(df: pd.DataFrame) -> tuple:
 
     X, y = convert_for_classifier(df)
 
-    classfier = RandomForestClassifier()
-    classfier.fit(X, y)
+    pipeline = make_pipeline(
+        StackingEstimator(estimator=DecisionTreeClassifier(criterion="entropy", max_depth=7, min_samples_leaf=9, min_samples_split=16)),
+        ExtraTreesClassifier(bootstrap=False, criterion="entropy", max_features=0.9500000000000001, min_samples_leaf=9, min_samples_split=15, n_estimators=100)
+    )
+
+    #classfier = RandomForestClassifier() #ExtraTreesClassifier(bootstrap=False, criterion="entropy", max_features=0.9500000000000001, min_samples_leaf=9, min_samples_split=15, n_estimators=100)
+    #classfier.fit(X, y)
+    pipeline.fit(X, y)
 
     means = get_means_from_training_set(df)
-    return classfier, means
+    return pipeline, means
