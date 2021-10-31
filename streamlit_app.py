@@ -9,7 +9,7 @@ from classifier import classify_data, convert_for_classifier, classfier_col_orde
 def main():
     selected_page = st.sidebar.selectbox(
         'Select page',
-        ('Landing', 'Example UI', 'Model', 'Patients'),
+        ('Example UI', 'Model', 'Patients'),
         index=0
     )
 
@@ -151,6 +151,8 @@ def patient_stats():
 def example_user_ui():
     st.title('Example UI')
 
+    st.write('If any values are zero, they are assumed to be within reference values.')
+
     classifier = None
     means = None
     # caching the classfier
@@ -165,37 +167,34 @@ def example_user_ui():
         classifier = st.session_state['precomputed_classifier']
         means = st.session_state['means']
 
-    with st.form('parameters_form'):
-        continous = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age']
-        categorical = ['motor_impairment', 'chest_pain']
+    continous = ['pulse', 'spo2', 'sap', 't', 'rr', 'gluc', 'age']
+    categorical = ['motor_impairment', 'chest_pain']
 
-        measurements = {}
+    measurements = {}
 
-        for val in continous:
-            # assuming 0 is null
-            num_val = st.number_input(val)
-            measurements[val] = num_val if num_val != 0 else None
+    for val in continous:
+        # assuming 0 is null
+        num_val = st.number_input(val)
+        measurements[val] = num_val if num_val != 0 else None
 
-        measurements['sex'] = 0 if st.selectbox('sex', ('Male', 'Female')) == 'Male' else 1
+    measurements['sex'] = 0 if st.selectbox('sex', ('Male', 'Female')) == 'Male' else 1
 
-        for val in categorical:
-            measurements[val] = int(st.checkbox(val))
+    for val in categorical:
+        measurements[val] = int(st.checkbox(val))
 
-        submitted = st.form_submit_button('Get probabilities')
-        if submitted:
-            # get probabilities
-            df = pd.DataFrame(data=[measurements])
-            # we need to use means from the training set here, kinda dangerous
-            # but should be fine medical measurements in this case
-            df = fix_missing_values(df, means)
-            df = df[list(filter(lambda x: x != 'diagnosis', classfier_col_order))]
-            probabilities = classifier.predict_proba(df.to_numpy())
+    # get probabilities
+    df = pd.DataFrame(data=[measurements])
+    # we need to use means from the training set here, kinda dangerous
+    # but should be fine medical measurements in this case
+    df = fix_missing_values(df, means)
+    df = df[list(filter(lambda x: x != 'diagnosis', classfier_col_order))]
+    probabilities = classifier.predict_proba(df.to_numpy())
 
-            # build graph
-            diagnoses_map_flipped = { v: k for k,v in diagnoses_map.items()}
-            diagnoses_df = pd.DataFrame(data={'diagnosis': range(len(probabilities[0])), 'probability': probabilities[0]})
-            diagnoses_df['diagnosis'] = diagnoses_df['diagnosis'].replace(to_replace=diagnoses_map_flipped)
-            diagnoses_chart = alt.Chart(diagnoses_df).mark_bar().encode(x='diagnosis', y='probability')
-            st.altair_chart(diagnoses_chart, use_container_width=True)
+    # build graph
+    diagnoses_map_flipped = { v: k for k,v in diagnoses_map.items()}
+    diagnoses_df = pd.DataFrame(data={'diagnosis': range(len(probabilities[0])), 'probability': probabilities[0]})
+    diagnoses_df['diagnosis'] = diagnoses_df['diagnosis'].replace(to_replace=diagnoses_map_flipped)
+    diagnoses_chart = alt.Chart(diagnoses_df).mark_bar().encode(x='diagnosis', y='probability')
+    st.altair_chart(diagnoses_chart, use_container_width=True)
 
 main()
